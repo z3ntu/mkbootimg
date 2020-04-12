@@ -21,6 +21,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <getopt.h>
 
 #include "mincrypt/sha.h"
 #include "mincrypt/sha256.h"
@@ -300,80 +301,113 @@ int main(int argc, char **argv)
     size_t cmdlen;
     enum hash_alg hash_alg = HASH_SHA1;
 
-    argc--;
-    argv++;
+    static struct option long_options[] = {
+        { "output",          required_argument, NULL, 'o' },
+        { "kernel",          required_argument, NULL, 0 },
+        { "ramdisk",         required_argument, NULL, 0 },
+        { "second",          required_argument, NULL, 0 },
+        { "dtb",             required_argument, NULL, 0 },
+        { "recovery_dtbo",   required_argument, NULL, 0 },
+        { "recovery_acpio",  required_argument, NULL, 0 },
+        { "cmdline",         required_argument, NULL, 0 },
+        { "base",            required_argument, NULL, 0 },
+        { "kernel_offset",   required_argument, NULL, 0 },
+        { "ramdisk_offset",  required_argument, NULL, 0 },
+        { "second_offset",   required_argument, NULL, 0 },
+        { "tags_offset",     required_argument, NULL, 0 },
+        { "dtb_offset",      required_argument, NULL, 0 },
+        { "board",           required_argument, NULL, 0 },
+        { "pagesize",        required_argument, NULL, 0 },
+        { "dt",              required_argument, NULL, 0 },
+        { "os_version",      required_argument, NULL, 0 },
+        { "os_patch_level",  required_argument, NULL, 0 },
+        { "header_version",  required_argument, NULL, 0 },
+        { "hash",            required_argument, NULL, 0 },
+        { NULL,              0,                 0,    0 }
+    };
 
     memset(&hdr, 0, sizeof(hdr));
 
     bool get_id = false;
-    while(argc > 0){
-        char *arg = argv[0];
-        if(!strcmp(arg, "--id")) {
-            get_id = true;
-            argc -= 1;
-            argv += 1;
-        } else if(argc >= 2) {
-            char *val = argv[1];
-            argc -= 2;
-            argv += 2;
-            if(!strcmp(arg, "--output") || !strcmp(arg, "-o")) {
-                bootimg = val;
-            } else if(!strcmp(arg, "--kernel")) {
-                kernel_fn = val;
-            } else if(!strcmp(arg, "--ramdisk")) {
-                ramdisk_fn = val;
-            } else if(!strcmp(arg, "--second")) {
-                second_fn = val;
-            } else if(!strcmp(arg, "--dtb")) {
-                dtb_fn = val;
-            } else if(!strcmp(arg, "--recovery_dtbo") || !strcmp(arg, "--recovery_acpio")) {
-                recovery_dtbo_fn = val;
-            } else if(!strcmp(arg, "--cmdline")) {
-                cmdline = val;
-            } else if(!strcmp(arg, "--base")) {
-                base = strtoul(val, 0, 16);
-            } else if(!strcmp(arg, "--kernel_offset")) {
-                kernel_offset = strtoul(val, 0, 16);
-            } else if(!strcmp(arg, "--ramdisk_offset")) {
-                ramdisk_offset = strtoul(val, 0, 16);
-            } else if(!strcmp(arg, "--second_offset")) {
-                second_offset = strtoul(val, 0, 16);
-            } else if(!strcmp(arg, "--tags_offset")) {
-                tags_offset = strtoul(val, 0, 16);
-            } else if(!strcmp(arg, "--dtb_offset")) {
-                dtb_offset = strtoul(val, 0, 16);
-            } else if(!strcmp(arg, "--board")) {
-                board = val;
-            } else if(!strcmp(arg,"--pagesize")) {
-                pagesize = strtoul(val, 0, 10);
-                if((pagesize != 2048) && (pagesize != 4096)
-                    && (pagesize != 8192) && (pagesize != 16384)
-                    && (pagesize != 32768) && (pagesize != 65536)
-                    && (pagesize != 131072)) {
-                    fprintf(stderr,"error: unsupported page size %d\n", pagesize);
-                    return -1;
+
+    int opt = 0;
+    int long_index = 0;
+    while (1) {
+        opt = getopt_long(argc, argv, "o:",
+                          long_options, &long_index);
+        if (opt == -1)
+            break;
+
+        switch (opt) {
+            case 0:
+            {
+                const char *arg = long_options[long_index].name;
+                char *val = optarg;
+                if(!strcmp(arg, "id")) {
+                    get_id = true;
+                } else if(!strcmp(arg, "kernel")) {
+                    kernel_fn = val;
+                } else if(!strcmp(arg, "ramdisk")) {
+                    ramdisk_fn = val;
+                } else if(!strcmp(arg, "second")) {
+                    second_fn = val;
+                } else if(!strcmp(arg, "dtb")) {
+                    dtb_fn = val;
+                } else if(!strcmp(arg, "recovery_dtbo") || !strcmp(arg, "recovery_acpio")) {
+                    recovery_dtbo_fn = val;
+                } else if(!strcmp(arg, "cmdline")) {
+                    cmdline = val;
+                } else if(!strcmp(arg, "base")) {
+                    base = strtoul(val, 0, 16);
+                } else if(!strcmp(arg, "kernel_offset")) {
+                    kernel_offset = strtoul(val, 0, 16);
+                } else if(!strcmp(arg, "ramdisk_offset")) {
+                    ramdisk_offset = strtoul(val, 0, 16);
+                } else if(!strcmp(arg, "second_offset")) {
+                    second_offset = strtoul(val, 0, 16);
+                } else if(!strcmp(arg, "tags_offset")) {
+                    tags_offset = strtoul(val, 0, 16);
+                } else if(!strcmp(arg, "dtb_offset")) {
+                    dtb_offset = strtoul(val, 0, 16);
+                } else if(!strcmp(arg, "board")) {
+                    board = val;
+                } else if(!strcmp(arg,"pagesize")) {
+                    pagesize = strtoul(val, 0, 10);
+                    if((pagesize != 2048) && (pagesize != 4096)
+                        && (pagesize != 8192) && (pagesize != 16384)
+                        && (pagesize != 32768) && (pagesize != 65536)
+                        && (pagesize != 131072)) {
+                        fprintf(stderr,"error: unsupported page size %d\n", pagesize);
+                        return -1;
+                    }
+                } else if(!strcmp(arg, "dt")) {
+                    dt_fn = val;
+                } else if(!strcmp(arg, "os_version")) {
+                    os_version = parse_os_version(val);
+                } else if(!strcmp(arg, "os_patch_level")) {
+                    os_patch_level = parse_os_patch_level(val);
+                } else if(!strcmp(arg, "header_version")) {
+                    header_version = strtoul(val, 0, 10);
+                } else if(!strcmp(arg, "hash")) {
+                    hash_alg = parse_hash_alg(val);
+                    if(hash_alg == HASH_UNKNOWN) {
+                        fprintf(stderr, "error: unknown hash algorithm '%s'\n", val);
+                        return -1;
+                    }
+                } else {
+                    printf("unhandled option: %s\n", arg);
+                    return usage();
                 }
-            } else if(!strcmp(arg, "--dt")) {
-                dt_fn = val;
-            } else if(!strcmp(arg, "--os_version")) {
-                os_version = parse_os_version(val);
-            } else if(!strcmp(arg, "--os_patch_level")) {
-                os_patch_level = parse_os_patch_level(val);
-            } else if(!strcmp(arg, "--header_version")) {
-                header_version = strtoul(val, 0, 10);
-            } else if(!strcmp(arg, "--hash")) {
-                hash_alg = parse_hash_alg(val);
-                if(hash_alg == HASH_UNKNOWN) {
-                    fprintf(stderr, "error: unknown hash algorithm '%s'\n", val);
-                    return -1;
-                }
-            } else {
-                return usage();
+                break;
             }
-        } else {
-            return usage();
+            case 'o':
+                bootimg = optarg;
+                break;
+            default:
+                return usage();
         }
     }
+
     hdr.page_size = pagesize;
 
     hdr.kernel_addr =  base + kernel_offset;
